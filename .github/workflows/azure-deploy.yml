@@ -31,6 +31,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no azureuser@20.51.207.28 << 'EOF'
           cd apache/apache-laravel/
           git pull origin main || { echo 'Git pull failed'; exit 1; }
+          composer install --no-interaction --no-suggest || { echo 'Composer install failed'; exit 1; }
           php artisan config:cache || { echo 'Config cache failed'; exit 1; }
           php artisan route:cache || { echo 'Route cache failed'; exit 1; }
           php artisan view:clear || { echo 'View clear failed'; exit 1; }
