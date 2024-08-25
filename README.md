@@ -39,46 +39,7 @@ Install PHP and necessary extensions:
 sudo apt update
 sudo apt install php php-cli php-mysql libapache2-mod-php php-xml php-mbstring
 ```
-### Step 3: Configure Apache for Laravel
-- #### Create a Virtual Host Configuration
-Navigate to the sites-available directory and create a new configuration file for Laravel:
 
-```bash
-cd /etc/apache2/sites-available/
-sudo nano yourdomain.com.conf
-```
-- ####  Add the following content, replacing yourdomain.com with your actual domain:
-
-```apache
-<VirtualHost *:80>
-    ServerName yourdomain.com
-    DocumentRoot /var/www/html/<destination_directory>/public
-
-    <Directory /var/www/html/<destination_directory>/public>
-        AllowOverride All
-        Require all granted
-    </Directory>
-
-    # Optional: Log directives
-    ErrorLog ${APACHE_LOG_DIR}/error.log
-    CustomLog ${APACHE_LOG_DIR}/access.log combined
-</VirtualHost>
-```
-- #### Enable the Virtual Host and Necessary Modules
-```bash
-sudo a2ensite yourdomain.com.conf
-sudo a2enmod rewrite
-```
-### Step 4: Disable Default Site (if necessary)
-```bash
-sudo a2dissite 000-default.conf
-```
-### Step 5: Reload Apache
- Apply the configuration changes by reloading Apache:
-
-```bash
-sudo systemctl reload apache2
-```
 ## Install MySQL
 ### Step 1: Install MySQL
 ```bash
@@ -230,6 +191,120 @@ Ensure that the DNS for apache-laravel.bimash.com.np points to your server’s I
 Open a web browser and go to http://yourdomain.com. You should see the "Welcome to yourdomain.com" message you added in the index.html file.
 If you need to use SSL (HTTPS), you can obtain and configure an SSL certificate using Let's Encrypt with Certbot. This is often required for modern web standards.
 
+## Supervisor/Systemd Configuration
+
+To run php artisan serve in the background, you can use either systemd or supervisor. Below are instructions for both methods:
+
+## Using systemd
+#### Step 1: Create or Edit the Service File
+
+Create or edit the systemd service file:
+
+```bash
+sudo nano /etc/systemd/system/laravel-serve.service
+```
+#### Step 2: Add the Service Configuration
+
+Add the following configuration:
+
+```ini
+[Unit]
+Description=Laravel Development Server
+After=network.target
+
+[Service]
+User=azureuser
+Group=azureuser
+WorkingDirectory=/home/azureuser/apache/apache-laravel/
+ExecStart=/usr/bin/php /home/azureuser/apache/apache-laravel/artisan serve --host=0.0.0.0 --port=8000
+Restart=always
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=laravel-serve
+
+[Install]
+WantedBy=multi-user.target
+```
+- User and Group: Set to azureuser.
+- WorkingDirectory: Points to your Laravel project.
+- ExecStart: Runs the php artisan serve command.
+
+#### Step 3:Reload systemd
+
+```bash
+sudo systemctl daemon-reload
+```
+#### Start the Service
+
+```bash
+sudo systemctl start laravel-serve
+```
+#### Enable the Service at Boot
+
+```bash
+sudo systemctl enable laravel-serve
+```
+#### Check the Status
+
+```bash
+sudo systemctl status laravel-serve
+```
+## Using supervisor
+### Step 1: Install Supervisor
+
+If it's not already installed, install Supervisor:
+
+```bash
+sudo apt-get update
+sudo apt-get install supervisor
+```
+### Step 2: Create a Supervisor Configuration File
+
+Create a configuration file for your Laravel application:
+
+```bash
+sudo nano /etc/supervisor/conf.d/laravel-serve.conf
+```
+### Step 3: Add the Supervisor Configuration
+
+Add the following configuration:
+
+```ini
+[program:laravel-serve]
+command=/usr/bin/php /home/azureuser/apache/apache-laravel/artisan serve --host=0.0.0.0 --port=8000
+directory=/home/azureuser/apache/apache-laravel/
+autostart=true
+autorestart=true
+user=azureuser
+stdout_logfile=/var/log/laravel-serve.log
+stderr_logfile=/var/log/laravel-serve.err
+```
+- command: The command to start the Laravel server.
+- directory: Working directory for the command.
+- autostart and autorestart: Ensure the service starts on boot and restarts on failure.
+- user: The user to run the command as.
+- stdout_logfile and stderr_logfile: Paths to log files.
+- Update Supervisor and Start the Service
+
+### Step 4: Update Supervisor to include the new configuration and start the service:
+
+```bash
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start laravel-serve
+```
+### Step 5: Check the Status
+
+Verify that the service is running:
+
+```bash
+sudo supervisorctl status
+```
+## Notes
+- systemd: Ideal for production or more integrated service management.
+- supervisor: Useful for managing multiple processes or in development environments.
+Both methods will keep your Laravel application running in the background. Choose the one that best fits your needs.
 
 
 ## Manual Deployment
