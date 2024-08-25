@@ -1,66 +1,314 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# apache-laravel
+Setup Laravel with Apache server and MySQL database on your domain.
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Apache Installation
+### Step 1: Install Apache
+```bash
+sudo apt update
+sudo apt install apache2
+```
+### Step 2: Verify Apache Installation
+Check if Apache is running:
 
-## About Laravel
+```bash
+sudo systemctl status apache2
+If Apache is not running, start it:
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+```bash
+sudo systemctl start apache2
+```
+### Step 3: Configure Apache to Start on Boot
+ To ensure Apache starts automatically on server boot:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+```bash
+sudo systemctl enable apache2
+```
+## Setup Laravel
+### Step 1: Clone the Laravel Repository
+Clone your Laravel repository:
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```bash
+git clone --depth 1 <repository_url> <destination_directory>
+```
+- <repository_url>: The URL of your Laravel repository.
+- <destination_directory>: Directory where you want to clone the repository.
+### Step 2: Install PHP and Required Extensions
+Install PHP and necessary extensions:
 
-## Learning Laravel
+```bash
+sudo apt update
+sudo apt install php php-cli php-mysql libapache2-mod-php php-xml php-mbstring
+```
+### Step 3: Configure Apache for Laravel
+- #### Create a Virtual Host Configuration
+Navigate to the sites-available directory and create a new configuration file for Laravel:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+```bash
+cd /etc/apache2/sites-available/
+sudo nano yourdomain.com.conf
+```
+- ####  Add the following content, replacing yourdomain.com with your actual domain:
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+```apache
+<VirtualHost *:80>
+    ServerName yourdomain.com
+    DocumentRoot /var/www/html/<destination_directory>/public
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+    <Directory /var/www/html/<destination_directory>/public>
+        AllowOverride All
+        Require all granted
+    </Directory>
 
-## Laravel Sponsors
+    # Optional: Log directives
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+```
+- #### Enable the Virtual Host and Necessary Modules
+```bash
+sudo a2ensite yourdomain.com.conf
+sudo a2enmod rewrite
+```
+### Step 4: Disable Default Site (if necessary)
+```bash
+sudo a2dissite 000-default.conf
+```
+### Step 5: Reload Apache
+ Apply the configuration changes by reloading Apache:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+sudo systemctl reload apache2
+```
+## Install MySQL
+### Step 1: Install MySQL
+```bash
+sudo apt update
+sudo apt install mysql-server
+```
+### Step 2: Secure MySQL Installation
+Run the MySQL secure installation script to improve security:
 
-### Premium Partners
+```bash
+sudo mysql_secure_installation
+```
+### Step 3: Create a MySQL Database and User for Laravel
+Log into MySQL as the root user:
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+```bash
+sudo mysql -u root -p
+```
+Create a new database and user, and grant privileges:
 
-## Contributing
+```sql
+CREATE DATABASE your_database_name;
+CREATE USER 'your_database_user'@'localhost' IDENTIFIED BY 'your_database_password';
+GRANT ALL PRIVILEGES ON your_database_name.* TO 'your_database_user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+### Step 4: Update Laravel Configuration
+Update the .env file in your Laravel project to include the database credentials:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+sudo nano /var/www/html/<destination_directory>/.env
+```
+Ensure the following lines are updated with your database information:
 
-## Code of Conduct
+```dotenv
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=your_database_name
+DB_USERNAME=your_database_user
+DB_PASSWORD=your_database_password
+```
+### Step 5: Install Laravel Dependencies
+Navigate to your Laravel project directory and install dependencies:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+cd /var/www/html/<destination_directory>
+composer install
+```
+### Step 6: Generate Application Key
+Generate a new application key:
 
-## Security Vulnerabilities
+```bash
+php artisan key:generate
+```
+### Step 7: Migrate Database (if needed)
+Run migrations to set up your database schema:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+php artisan migrate
+```
 
-## License
+## Configure Apache
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+To configure Apache to serve a website based on a domain name, you'll need to set up a Virtual Host. Here's how you can do it on Ubuntu:
+
+### Step 1: Enable the rewrite module (optional but recommended)
+
+This module allows URL rewriting, which is often needed for domain-based routing.
+
+```bash
+sudo a2enmod rewrite
+sudo systemctl restart apache2
+```
+
+### Step 2: Create a Virtual Host Configuration File
+
+#### Navigate to the sites-available directory:
+
+```bash
+cd /etc/apache2/sites-available/
+```
+
+#### Create a new configuration file for your domain:
+
+- #### Replace yourdomain.com with your actual domain name.
+
+```bash
+sudo nano yourdomain.com.conf
+```
+
+- #### Add the following content to the file:
+
+```apache
+<VirtualHost *:80>
+    ServerName apache-laravel.bimash.com.np
+
+    ProxyPass /  http://localhost:8000/
+    ProxyPassReverse /  http://localhost:8000/
+
+    <Proxy *>
+        Require all granted
+    </Proxy>
+
+    # Optional: Log directives for debugging
+    ErrorLog ${APACHE_LOG_DIR}/proxy_error.log
+    CustomLog ${APACHE_LOG_DIR}/proxy_access.log combined
+</VirtualHost>
+
+```
+
+- #### Enable Required Apache Modules
+
+
+```bash
+sudo a2enmod proxy
+sudo a2enmod proxy_http
+```
+- #### Save and Enable the Virtual Host
+
+
+```bash
+sudo a2ensite apache-laravel.bimash.com.np.conf
+```
+
+### Step 3: Disable Conflicting Sites
+
+If there’s a default site that could conflict, disable it:
+
+```bash
+sudo a2dissite 000-default.conf
+```
+
+### Step 4: Reload Apache
+
+Apply the configuration changes by reloading Apache:
+
+```bash
+sudo systemctl reload apache2
+```
+
+### Step 5: Check DNS
+
+Ensure that the DNS for apache-laravel.bimash.com.np points to your server’s IP address.
+
+### Step 6: Test the Configuration
+
+Open a web browser and go to http://yourdomain.com. You should see the "Welcome to yourdomain.com" message you added in the index.html file.
+If you need to use SSL (HTTPS), you can obtain and configure an SSL certificate using Let's Encrypt with Certbot. This is often required for modern web standards.
+
+
+
+## Manual Deployment
+
+### Step 1: Pull the Latest Changes
+
+Navigate to your Laravel project directory and pull the latest changes:
+
+``` bash
+cd /path/to/your/apache-laravel/
+git pull origin main
+```
+Adjust the branch name (main in this case) as needed.
+
+### Step 2: Clear and Cache Configurations
+
+Run Laravel's artisan commands to clear any cached configurations or views:
+
+```bash
+php artisan config:cache
+php artisan route:cache
+php artisan view:clear
+```
+### Step 3: Reload Apache
+
+To apply any changes to the Apache configuration, reload Apache:
+
+```bash
+sudo systemctl reload apache2
+```
+### Step 4: Check for Laravel Queue Workers or Background Jobs
+
+If your application uses queue workers or background jobs, you might need to restart them. You can restart the Laravel queue workers with:
+
+```bash
+php artisan queue:restart
+```
+If you're using Supervisor or another process manager, restart those services as well.
+
+### Step 5: Verify Changes
+
+After reloading Apache and clearing the Laravel cache, visit your application’s URL to verify that the changes have been applied correctly.
+
+## CI/CD Pipeline Deployment
+
+```yaml
+name: 🚀 Deploy frontend on push
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  web-deploy:
+    name: 🎉 Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v3
+    
+    
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy to Azure VM
+        run: |
+          ssh -o StrictHostKeyChecking=no azureuser@20.51.207.28 << 'EOF'
+          cd apache/apache-laravel/
+          git pull origin main
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:clear
+          sudo systemctl reload apache2
+          php artisan queue:restart
+
+```
+
